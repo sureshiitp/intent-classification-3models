@@ -1,4 +1,3 @@
-
 import streamlit as st
 import joblib
 import numpy as np
@@ -13,46 +12,48 @@ st.title("Intent Classification (TF-IDF, BiGRU, TinyBERT)")
 # TF-IDF LOAD
 #########################################
 def load_tfidf():
-    clf = joblib.load("models/tfidf/tfidf_model.joblib")
-    vec = joblib.load("models/tfidf/tfidf_vectorizer.joblib")
-    le = joblib.load("models/tfidf/label_encoder.joblib")
+    clf = joblib.load("tfidf/tfidf_model.joblib")
+    vec = joblib.load("tfidf/tfidf_vectorizer.joblib")
+    le = joblib.load("tfidf/label_encoder.joblib")
     return clf, vec, le
 
 #########################################
 # BiGRU LOAD
 #########################################
 def load_bigru():
-    model = tf.keras.models.load_model("models/bilstm/bilstm_model.h5")
-    tok = joblib.load("models/bilstm/tokenizer_bilstm.joblib")
-    le = joblib.load("models/bilstm/label_encoder.joblib")
+    model = tf.keras.models.load_model("bilstm/bilstm_model.h5")
+    tok = joblib.load("bilstm/tokenizer_bilstm.joblib")
+    le = joblib.load("bilstm/label_encoder.joblib")
     return model, tok, le
 
 #########################################
 # TinyBERT LOAD
 #########################################
 def load_tinybert():
-    tok = AutoTokenizer.from_pretrained("models/tinybert")
-    model = AutoModelForSequenceClassification.from_pretrained("models/tinybert")
-    le = joblib.load("models/tinybert/label_encoder.joblib")
+    tok = AutoTokenizer.from_pretrained("tinybert")
+    model = AutoModelForSequenceClassification.from_pretrained("tinybert")
+    le = joblib.load("tinybert/label_encoder.joblib")
     return tok, model, le
 
+#########################################
+# UI
+#########################################
 model_name = st.selectbox("Choose Model", ["TF-IDF", "BiGRU", "TinyBERT"])
 user_input = st.text_input("Enter your message:")
 
+#########################################
+# PREDICTION
+#########################################
 if st.button("Predict") and user_input:
-    
-    #########################################
-    # TF-IDF PREDICTION
-    #########################################
+
+    # TF-IDF
     if model_name == "TF-IDF":
         clf, vec, le = load_tfidf()
         x = vec.transform([user_input])
         pred = clf.predict(x)[0]
         st.success(le.inverse_transform([pred])[0])
 
-    #########################################
-    # BiGRU PREDICTION
-    #########################################
+    # BiGRU
     elif model_name == "BiGRU":
         model, tok, le = load_bigru()
         seq = tok.texts_to_sequences([user_input])
@@ -61,12 +62,11 @@ if st.button("Predict") and user_input:
         pred = np.argmax(probs)
         st.success(le.inverse_transform([pred])[0])
 
-    #########################################
-    # TinyBERT Prediction
-    #########################################
+    # TinyBERT
     else:
         tok, model, le = load_tinybert()
         tokens = tok(user_input, return_tensors="pt")
         out = model(**tokens)
         pred = int(torch.argmax(out.logits))
         st.success(le.inverse_transform([pred])[0])
+
